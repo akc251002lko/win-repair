@@ -210,7 +210,7 @@ def build_task_catalog() -> Dict[str, Task]:
     return tasks
 
 
-def _validate_task(task: Task, info: SystemInfo) -> None:
+def _validate_task(task: Task, info: SystemInfo, execute: bool = True) -> None:
     if not _is_windows():
         raise UnsupportedPlatformError("Repair tasks require Windows.")
     major = _windows_major_version()
@@ -218,7 +218,7 @@ def _validate_task(task: Task, info: SystemInfo) -> None:
         raise UnsupportedPlatformError(
             "This operation requires a newer Windows release."
         )
-    if task.requires_admin and not info.is_admin:
+    if execute and task.requires_admin and not info.is_admin:
         raise PrivilegeError("This task requires an elevated Administrator session.")
     if task.command and shutil.which(task.command[0]) is None:
         raise CommandExecutionError("Required Windows utility was not found: " + task.command[0])
@@ -230,7 +230,7 @@ def _run_task(task: Task, execute: bool, info: SystemInfo) -> TaskResult:
         output = json.dumps(asdict(info), indent=2, sort_keys=True)
         return TaskResult(task.task_id, task.title, [], started, 0.0, 0, "completed", output)
 
-    _validate_task(task, info)
+    _validate_task(task, info, execute)
     command = list(task.command)
     if not execute:
         return TaskResult(
