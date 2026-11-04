@@ -1,6 +1,7 @@
 """Unit tests for WinRepair's safe planning and reporting behavior."""
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -95,6 +96,13 @@ class WinRepairTests(unittest.TestCase):
         )
         self.assertEqual(result.status, "planned")
 
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows system utility integration test")
+    def test_system_utility_resolves_from_system_directory(self):
+        resolved = Path(win_repair._resolve_system_utility("sfc"))
+        self.assertTrue(resolved.is_absolute())
+        self.assertEqual(resolved.name.lower(), "sfc.exe")
+        self.assertTrue(resolved.is_file())
 
     def test_unapproved_system_utility_is_rejected(self):
         with self.assertRaises(win_repair.CommandExecutionError):
