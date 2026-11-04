@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -210,6 +209,45 @@ def build_task_catalog() -> Dict[str, Task]:
     return tasks
 
 
+def _system_directory() -> Path:
+    """Resolve the native Windows system directory without PATH lookup."""
+    if not _is_windows():
+        raise UnsupportedPlatformError("Windows system utilities require Windows.")
+    kernel32 = ctypes.windll.kernel32
+    is_wow64 = ctypes.c_bool(False)
+    try:
+        wow64 = bool(kernel32.IsWow64Process(
+            kernel32.GetCurrentProcess(), ctypes.byref(is_wow64)
+        )) and is_wow64.value
+    except AttributeError:
+        wow64 = False
+
+    if wow64:
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = kernel32.GetWindowsDirectoryW(buffer, len(buffer))
+        if length == 0 or length >= len(buffer):
+            raise CommandExecutionError("Unable to resolve the Windows directory.")
+        return Path(buffer.value) / "Sysnative"
+
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = kernel32.GetSystemDirectoryW(buffer, len(buffer))
+    if length == 0 or length >= len(buffer):
+        raise CommandExecutionError("Unable to resolve the Windows system directory.")
+    return Path(buffer.value)
+
+
+def _resolve_system_utility(name: str) -> str:
+    """Return an absolute path to an allow-listed Windows system utility."""
+    utilities = {"sfc", "dism", "chkdsk"}
+    normalized = name.lower()
+    if normalized not in utilities:
+        raise CommandExecutionError("Unapproved Windows utility: " + name)
+    executable = _system_directory() / (normalized + ".exe")
+    if not executable.is_file():
+        raise CommandExecutionError("Required Windows utility was not found: " + normalized)
+    return str(executable)
+
+
 def _validate_task(task: Task, info: SystemInfo, execute: bool = True) -> None:
     if not _is_windows():
         raise UnsupportedPlatformError("Repair tasks require Windows.")
@@ -220,8 +258,8 @@ def _validate_task(task: Task, info: SystemInfo, execute: bool = True) -> None:
         )
     if execute and task.requires_admin and not info.is_admin:
         raise PrivilegeError("This task requires an elevated Administrator session.")
-    if task.command and shutil.which(task.command[0]) is None:
-        raise CommandExecutionError("Required Windows utility was not found: " + task.command[0])
+    if task.command:
+        _resolve_system_utility(task.command[0])
 
 
 def _run_task(task: Task, execute: bool, info: SystemInfo) -> TaskResult:
@@ -232,6 +270,8 @@ def _run_task(task: Task, execute: bool, info: SystemInfo) -> TaskResult:
 
     _validate_task(task, info, execute)
     command = list(task.command)
+    if command:
+        command[0] = _resolve_system_utility(command[0])
     if not execute:
         return TaskResult(
             task.task_id, task.title, command, started, 0.0, None,
