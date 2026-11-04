@@ -123,6 +123,10 @@ SECURITY.md
 README.md
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull request guidance.
+
 ## Security
 
 Please do not publish logs or JSON reports containing private system information. See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
