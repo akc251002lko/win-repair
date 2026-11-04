@@ -131,10 +131,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull request guidance
 
 Please do not publish logs or JSON reports containing private system information. See [SECURITY.md](SECURITY.md) for responsible vulnerability reporting.
 
-## Community
-
-Questions, feedback and project updates: [Join the Telegram community](https://t.me/githubakc251002lko).
-
 ## License
 
 MIT License. See [LICENSE](LICENSE).
