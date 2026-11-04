@@ -134,3 +134,7 @@ Please do not publish logs or JSON reports containing private system information
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+---
+
+**Maintained by [Arun Kumar](https://github.com/akc251002lko).**
