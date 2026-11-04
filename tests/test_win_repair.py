@@ -34,7 +34,7 @@ class WinRepairTests(unittest.TestCase):
 
     @mock.patch("src.win_repair._is_windows", return_value=True)
     @mock.patch("src.win_repair.sys.getwindowsversion")
-    @mock.patch("src.win_repair.shutil.which", return_value="C:\\Windows\\System32\\sfc.exe")
+    @mock.patch("src.win_repair._resolve_system_utility", return_value="C:\\Windows\\System32\\sfc.exe")
     def test_sfc_dry_run_does_not_execute(self, _which, get_version, _windows):
         get_version.return_value = mock.Mock(major=10, minor=0)
         task = win_repair.build_task_catalog()["sfc-verify"]
@@ -42,7 +42,7 @@ class WinRepairTests(unittest.TestCase):
             result = win_repair._run_task(task, False, self.info)
         run.assert_not_called()
         self.assertEqual(result.status, "planned")
-        self.assertEqual(result.command, ["sfc", "/verifyonly"])
+        self.assertEqual(result.command, ["C:\\Windows\\System32\\sfc.exe", "/verifyonly"])
 
     @mock.patch("src.win_repair._is_windows", return_value=True)
     @mock.patch("src.win_repair.sys.getwindowsversion")
@@ -94,6 +94,11 @@ class WinRepairTests(unittest.TestCase):
             win_repair.build_task_catalog()["sfc-repair"], False, unprivileged
         )
         self.assertEqual(result.status, "planned")
+
+
+    def test_unapproved_system_utility_is_rejected(self):
+        with self.assertRaises(win_repair.CommandExecutionError):
+            win_repair._resolve_system_utility("powershell")
 
     def test_admin_required_for_repair_tasks(self):
         task = win_repair.build_task_catalog()["sfc-repair"]
