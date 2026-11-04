@@ -47,7 +47,7 @@ class WinRepairTests(unittest.TestCase):
     @mock.patch("src.win_repair._is_windows", return_value=True)
     @mock.patch("src.win_repair.sys.getwindowsversion")
     def test_dism_is_rejected_on_windows_7(self, get_version, _windows):
-        get_version.return_value = mock.Mock(major=6, minor=1)
+        get_version.return_value = mock.Mock(major=6, minor=1, service_pack="Service Pack 1", service_pack_major=1)
         task = win_repair.build_task_catalog()["dism-scan"]
         with mock.patch("src.win_repair.shutil.which", return_value="DISM.exe"):
             with self.assertRaises(win_repair.UnsupportedPlatformError):
@@ -63,6 +63,21 @@ class WinRepairTests(unittest.TestCase):
         )
         with self.assertRaises(win_repair.UnsupportedPlatformError):
             win_repair._validate_task(task, self.info)
+
+
+    @mock.patch("src.win_repair._is_windows", return_value=True)
+    @mock.patch("src.win_repair.sys.getwindowsversion")
+    def test_windows_vista_is_rejected(self, get_version, _windows):
+        get_version.return_value = mock.Mock(major=6, minor=0)
+        with self.assertRaises(win_repair.UnsupportedPlatformError):
+            win_repair._windows_major_version()
+
+    @mock.patch("src.win_repair._is_windows", return_value=True)
+    @mock.patch("src.win_repair.sys.getwindowsversion")
+    def test_windows_7_requires_service_pack_one(self, get_version, _windows):
+        get_version.return_value = mock.Mock(major=6, minor=1, service_pack="", service_pack_major=0)
+        with self.assertRaises(win_repair.UnsupportedPlatformError):
+            win_repair._windows_major_version()
 
     def test_admin_required_for_repair_tasks(self):
         task = win_repair.build_task_catalog()["sfc-repair"]
