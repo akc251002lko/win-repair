@@ -53,6 +53,17 @@ class WinRepairTests(unittest.TestCase):
             with self.assertRaises(win_repair.UnsupportedPlatformError):
                 win_repair._validate_task(task, self.info)
 
+    @mock.patch("src.win_repair._is_windows", return_value=True)
+    @mock.patch("src.win_repair.sys.getwindowsversion")
+    def test_task_minimum_windows_version_is_enforced(self, get_version, _windows):
+        get_version.return_value = mock.Mock(major=6, minor=1)
+        task = win_repair.Task(
+            "future-task", "Future task", "Requires Windows 8 or later.",
+            (), False, minimum_major=6,
+        )
+        with self.assertRaises(win_repair.UnsupportedPlatformError):
+            win_repair._validate_task(task, self.info)
+
     def test_admin_required_for_repair_tasks(self):
         task = win_repair.build_task_catalog()["sfc-repair"]
         unprivileged = win_repair.SystemInfo(
