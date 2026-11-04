@@ -123,15 +123,24 @@ def _is_admin() -> bool:
 
 
 def _windows_major_version() -> int:
+    """Map supported Windows releases to ordered compatibility levels."""
     if not _is_windows():
         raise UnsupportedPlatformError("This application only runs on Windows.")
     try:
         version = sys.getwindowsversion()
-        if version.major == 6 and version.minor < 2:
+        if version.major == 6 and version.minor == 1:
+            service_pack = str(getattr(version, "service_pack", "")).lower()
+            service_pack_major = int(getattr(version, "service_pack_major", 0))
+            if service_pack_major < 1 and "service pack 1" not in service_pack:
+                raise UnsupportedPlatformError("Windows 7 Service Pack 1 is required.")
             return 5
-        return int(version.major)
-    except (AttributeError, OSError, ValueError) as exc:
-        raise UnsupportedPlatformError("Unable to identify the Windows version.") from exc
+        if version.major == 6 and version.minor in (2, 3):
+            return 6
+        if version.major >= 10:
+            return int(version.major)
+        raise UnsupportedPlatformError("Windows 7 Service Pack 1 or later is required.")
+    except (AttributeError, OSError, TypeError, ValueError) as exc:
+        raise UnsupportedPlatformError("Unable to identify a supported Windows version.") from exc
 
 
 def collect_system_info() -> SystemInfo:
