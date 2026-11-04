@@ -59,7 +59,7 @@ class Task:
     description: str
     command: Tuple[str, ...]
     requires_admin: bool
-    minimum_major: int = 7
+    minimum_major: int = 5
     changes_system: bool = False
 
 
@@ -205,8 +205,10 @@ def _validate_task(task: Task, info: SystemInfo) -> None:
     if not _is_windows():
         raise UnsupportedPlatformError("Repair tasks require Windows.")
     major = _windows_major_version()
-    if task.minimum_major == 6 and major < 6:
-        raise UnsupportedPlatformError("This DISM operation is not supported on this Windows release.")
+    if major < task.minimum_major:
+        raise UnsupportedPlatformError(
+            "This operation requires a newer Windows release."
+        )
     if task.requires_admin and not info.is_admin:
         raise PrivilegeError("This task requires an elevated Administrator session.")
     if task.command and shutil.which(task.command[0]) is None:
