@@ -126,7 +126,10 @@ def _windows_major_version() -> int:
     if not _is_windows():
         raise UnsupportedPlatformError("This application only runs on Windows.")
     try:
-        return int(sys.getwindowsversion().major)
+        version = sys.getwindowsversion()
+        if version.major == 6 and version.minor < 2:
+            return 5
+        return int(version.major)
     except (AttributeError, OSError, ValueError) as exc:
         raise UnsupportedPlatformError("Unable to identify the Windows version.") from exc
 
