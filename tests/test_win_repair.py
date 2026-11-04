@@ -79,6 +79,22 @@ class WinRepairTests(unittest.TestCase):
         with self.assertRaises(win_repair.UnsupportedPlatformError):
             win_repair._windows_major_version()
 
+
+    @mock.patch("src.win_repair._is_windows", return_value=True)
+    @mock.patch("src.win_repair.sys.getwindowsversion")
+    @mock.patch("src.win_repair.shutil.which", return_value="C:\\Windows\\System32\\sfc.exe")
+    def test_non_admin_can_preview_repair_task(self, _which, get_version, _windows):
+        get_version.return_value = mock.Mock(major=10, minor=0)
+        unprivileged = win_repair.SystemInfo(
+            system="Windows", release="10", version="10",
+            machine="AMD64", python_version="3.12",
+            service_pack="", is_64bit_os=True, is_admin=False,
+        )
+        result = win_repair._run_task(
+            win_repair.build_task_catalog()["sfc-repair"], False, unprivileged
+        )
+        self.assertEqual(result.status, "planned")
+
     def test_admin_required_for_repair_tasks(self):
         task = win_repair.build_task_catalog()["sfc-repair"]
         unprivileged = win_repair.SystemInfo(
